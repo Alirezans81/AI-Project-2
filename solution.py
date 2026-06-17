@@ -118,6 +118,8 @@ def main():
 
     K = int(input())
 
+    print("--------------------------")
+    
     sensitive = set()
     for _ in range(K):
         a, b = input().split()
