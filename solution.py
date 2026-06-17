@@ -1,4 +1,5 @@
 import time
+import copy
 
 backtracks = 0
 
@@ -12,7 +13,21 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
 
     var = select_unassigned(assignment, matches)
 
-    # consistent and forward_check
+    for value in domains[var]:
+
+        if consistent(var, value, assignment, matches, sensitive):
+
+            new_assignment = assignment.copy()
+            new_assignment[var] = value
+
+            new_domains = copy.deepcopy(domains)
+
+            if forward_check(var, value, new_domains, matches):
+
+                result = backtracking(new_assignment, new_domains, matches, stadiums, sensitive)
+
+                if result:
+                    return result
 
     backtracks += 1
     return None
@@ -22,6 +37,66 @@ def select_unassigned(assignment, matches):
     for i in range(len(matches)):
         if i not in assignment:
             return i
+
+
+def consistent(var, value, assignment, matches, sensitive):
+
+    day, hour, stadium = value
+    t1, t2 = matches[var]
+
+    for m, v in assignment.items():
+
+        d, h, s = v
+        a, b = matches[m]
+
+        # stadium conflict
+        if d == day and h == hour and s == stadium:
+            return False
+
+        # team rest constraint
+        if day == d and (t1 in [a, b] or t2 in [a, b]):
+            return False
+
+    # two or more sensitive game conflict
+    if var in sensitive:
+      for m, v in assignment.items():
+          if m in sensitive and v[0] == day:
+              return False
+
+
+    return True
+
+
+def forward_check(var, value, domains, matches):
+
+    day, hour, stadium = value
+    t1, t2 = matches[var]
+
+    for m in domains:
+
+        if m == var:
+            continue
+
+        new_domain = []
+
+        for d, h, s in domains[m]:
+
+            a, b = matches[m]
+
+            if d == day and h == hour and s == stadium:
+                continue
+
+            if d == day and (t1 in [a, b] or t2 in [a, b]):
+                continue
+
+            new_domain.append((d, h, s))
+
+        domains[m] = new_domain
+
+        if len(domains[m]) == 0:
+            return False
+
+    return True
 
 
 def main():
