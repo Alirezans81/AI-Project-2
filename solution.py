@@ -11,9 +11,11 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
     if len(assignment) == len(matches):
         return assignment
 
-    var = select_unassigned(assignment, matches)
+    # MRV: choose the unassigned match with the smallest remaining domain
+    var = select_unassigned(assignment, domains, matches)
 
-    for value in domains[var]:
+    # LCV: try values that remove fewer future options first
+    for value in order_domain_values(var, domains, matches, assignment, sensitive):
 
         if consistent(var, value, assignment, matches, sensitive):
 
@@ -22,7 +24,7 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
 
             new_domains = copy.deepcopy(domains)
 
-            if forward_check(var, value, new_domains, matches, new_assignment):
+            if forward_check(var, value, new_domains, matches, new_assignment, sensitive):
 
                 result = backtracking(new_assignment, new_domains, matches, stadiums, sensitive)
 
@@ -33,10 +35,56 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
     return None
 
 
-def select_unassigned(assignment, matches):
+def select_unassigned(assignment, domains, matches):
+
+    unassigned = []
+
     for i in range(len(matches)):
         if i not in assignment:
-            return i
+            unassigned.append(i)
+
+    return min(unassigned, key=lambda i: len(domains[i]))
+
+
+def order_domain_values(var, domains, matches, assignment, sensitive):
+
+    return sorted(
+        domains[var],
+        key=lambda value: count_removed_values(var, value, domains, matches, assignment, sensitive)
+    )
+
+
+def count_removed_values(var, value, domains, matches, assignment, sensitive):
+
+    day, hour, stadium = value
+    t1, t2 = matches[var]
+
+    removed_count = 0
+
+    for m in domains:
+
+        if m == var or m in assignment:
+            continue
+
+        a, b = matches[m]
+
+        for d, h, s in domains[m]:
+
+            # stadium conflict
+            if d == day and h == hour and s == stadium:
+                removed_count += 1
+                continue
+
+            # team rest constraint
+            if d == day and (t1 in [a, b] or t2 in [a, b]):
+                removed_count += 1
+                continue
+
+            # sensitive match constraint
+            if var in sensitive and m in sensitive and d == day:
+                removed_count += 1
+
+    return removed_count
 
 
 def consistent(var, value, assignment, matches, sensitive):
@@ -57,17 +105,14 @@ def consistent(var, value, assignment, matches, sensitive):
         if day == d and (t1 in [a, b] or t2 in [a, b]):
             return False
 
-    # two or more sensitive game conflict
-    if var in sensitive:
-      for m, v in assignment.items():
-          if m in sensitive and v[0] == day:
-              return False
-
+        # sensitive match constraint
+        if var in sensitive and m in sensitive and day == d:
+            return False
 
     return True
 
 
-def forward_check(var, value, domains, matches, assignment):
+def forward_check(var, value, domains, matches, assignment, sensitive):
 
     day, hour, stadium = value
     t1, t2 = matches[var]
@@ -82,10 +127,16 @@ def forward_check(var, value, domains, matches, assignment):
 
         for d, h, s in domains[m]:
 
+            # stadium conflict
             if d == day and h == hour and s == stadium:
                 continue
 
+            # team rest constraint
             if d == day and (t1 in [a, b] or t2 in [a, b]):
+                continue
+
+            # sensitive match constraint
+            if var in sensitive and m in sensitive and d == day:
                 continue
 
             new_domain.append((d, h, s))
@@ -97,9 +148,11 @@ def forward_check(var, value, domains, matches, assignment):
 
     return True
 
+
 def main():
 
     global backtracks
+    backtracks = 0
 
     S = int(input())
     stadiums = input().split()
@@ -116,15 +169,30 @@ def main():
 
     K = int(input())
 
-    print("--------------------------")
-    
-    sensitive = set()
+    sensitive_pairs = set()
     for _ in range(K):
         a, b = input().split()
-        sensitive.add(tuple(sorted((a, b))))
+        sensitive_pairs.add(tuple(sorted((a, b))))
 
+    sensitive = set()
+    for i, match in enumerate(matches):
+        if tuple(sorted(match)) in sensitive_pairs:
+            sensitive.add(i)
+
+    start = time.time()
+
+    # Feasibility check: total capacity
     if N > S * D * H:
         print("No Solution")
+        print("Backtracks:", backtracks)
+        print("Time:", round(time.time() - start, 4), "seconds")
+        return
+
+    # Feasibility check: sensitive matches
+    if K > D:
+        print("No Solution")
+        print("Backtracks:", backtracks)
+        print("Time:", round(time.time() - start, 4), "seconds")
         return
 
     domains = {}
@@ -135,8 +203,6 @@ def main():
             for h in range(1, H + 1):
                 for s in stadiums:
                     domains[i].append((d, h, s))
-
-    start = time.time()
 
     result = backtracking({}, domains, matches, stadiums, sensitive)
 
