@@ -179,6 +179,10 @@ def main():
         if tuple(sorted(match)) in sensitive_pairs:
             sensitive.add(i)
 
+    print("-" * 30)
+    print("Output:")
+    print("-" * 30)
+
     start = time.time()
 
     # Feasibility check: total capacity
