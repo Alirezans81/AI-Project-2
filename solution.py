@@ -5,6 +5,11 @@ backtracks = 0
 
 
 def backtracking(assignment, domains, matches, stadiums, sensitive):
+    """
+    Performs backtracking search to assign a valid time and stadium to every match.
+    It uses MRV for variable selection, LCV for value ordering, and Forward Checking
+    to reduce the domains of the remaining unassigned matches.
+    """
 
     global backtracks
 
@@ -36,6 +41,10 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
 
 
 def select_unassigned(assignment, domains, matches):
+    """
+    Selects the next unassigned match using the MRV heuristic.
+    MRV chooses the match with the smallest remaining domain to detect conflicts earlier.
+    """
 
     unassigned = []
 
@@ -47,6 +56,10 @@ def select_unassigned(assignment, domains, matches):
 
 
 def order_domain_values(var, domains, matches, assignment, sensitive):
+    """
+    Orders the possible values of a match using the LCV heuristic.
+    LCV tries values that remove the fewest options from future matches first.
+    """
 
     return sorted(
         domains[var],
@@ -55,6 +68,10 @@ def order_domain_values(var, domains, matches, assignment, sensitive):
 
 
 def count_removed_values(var, value, domains, matches, assignment, sensitive):
+    """
+    Counts how many values would be removed from other unassigned matches
+    if the current match was assigned to the given value. This count is used by LCV.
+    """
 
     day, hour, stadium = value
     t1, t2 = matches[var]
@@ -88,6 +105,11 @@ def count_removed_values(var, value, domains, matches, assignment, sensitive):
 
 
 def consistent(var, value, assignment, matches, sensitive):
+    """
+    Checks whether assigning a specific day, hour, and stadium to a match
+    is consistent with all already assigned matches.
+    It checks stadium conflict, team daily conflict, and sensitive match conflict.
+    """
 
     day, hour, stadium = value
     t1, t2 = matches[var]
@@ -113,6 +135,11 @@ def consistent(var, value, assignment, matches, sensitive):
 
 
 def forward_check(var, value, domains, matches, assignment, sensitive):
+    """
+    Applies Forward Checking after assigning a value to a match.
+    It removes invalid values from the domains of unassigned matches.
+    If any domain becomes empty, the assignment is rejected and backtracking happens.
+    """
 
     day, hour, stadium = value
     t1, t2 = matches[var]
@@ -150,7 +177,11 @@ def forward_check(var, value, domains, matches, assignment, sensitive):
 
 
 def main():
-
+    """
+    Reads input, builds the CSP domains, performs feasibility checks,
+    runs the backtracking search, and prints the final schedule or No Solution.
+    """
+    
     global backtracks
     backtracks = 0
 
