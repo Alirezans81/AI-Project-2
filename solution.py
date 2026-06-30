@@ -22,7 +22,7 @@ def backtracking(assignment, domains, matches, stadiums, sensitive):
 
             new_domains = copy.deepcopy(domains)
 
-            if forward_check(var, value, new_domains, matches):
+            if forward_check(var, value, new_domains, matches, new_assignment):
 
                 result = backtracking(new_assignment, new_domains, matches, stadiums, sensitive)
 
@@ -67,21 +67,20 @@ def consistent(var, value, assignment, matches, sensitive):
     return True
 
 
-def forward_check(var, value, domains, matches):
+def forward_check(var, value, domains, matches, assignment):
 
     day, hour, stadium = value
     t1, t2 = matches[var]
 
     for m in domains:
 
-        if m == var:
+        if m == var or m in assignment:
             continue
 
         new_domain = []
+        a, b = matches[m]
 
         for d, h, s in domains[m]:
-
-            a, b = matches[m]
 
             if d == day and h == hour and s == stadium:
                 continue
@@ -97,7 +96,6 @@ def forward_check(var, value, domains, matches):
             return False
 
     return True
-
 
 def main():
 
@@ -125,7 +123,7 @@ def main():
         a, b = input().split()
         sensitive.add(tuple(sorted((a, b))))
 
-    if N > S * D * H or K > D:
+    if N > S * D * H:
         print("No Solution")
         return
 
